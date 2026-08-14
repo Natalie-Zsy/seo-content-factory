@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+
+# 密钥与环境变量（绝不提交到 GitHub）
+.env
+.streamlit/secrets.toml
+
+# 运行产生的本地数据
+data/*
+!data/.gitkeep
+
+# 编辑器
+.vscode/
+.idea/

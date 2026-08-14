@@ -97,6 +97,22 @@ def render() -> None:
 
     st.divider()
 
+    # ---------- 网络诊断 ----------
+    st.subheader("🛰️ 网络诊断（排查 WordPress 海外拦截）")
+    st.caption("查询当前服务器（云端 Streamlit 或你本机）访问外网时使用的出口 IP，用于在主机防火墙放行。")
+    if st.button("查询本服务器出口 IP", key="net_ip"):
+        with st.spinner("查询中…"):
+            try:
+                import requests as _req
+
+                ip = _req.get("https://api.ipify.org", timeout=15).text.strip()
+                st.info(f"当前出口 IP：**{ip}**")
+                st.caption("把该 IP 加到 WordPress 主机防火墙放行名单即可。注意：Streamlit 应用重启后出口 IP 可能变化，变了需重新查并更新；GitHub Actions 定时任务的 IP 段请用 https://api.github.com/meta 里的 actions 列表。")
+            except Exception as exc:  # noqa: BLE001
+                st.error(f"查询失败：{exc}")
+
+    st.divider()
+
     # ---------- 永久保存到 Streamlit Secrets ----------
     st.subheader("🔐 永久保存：配置到 Streamlit Cloud Secrets")
     st.markdown(

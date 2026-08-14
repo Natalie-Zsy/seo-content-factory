@@ -9,6 +9,13 @@ import streamlit as st
 
 from ui import article_factory, daily_task, dispatch, keyword_research, overview, settings
 
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except ImportError:
+    pass
+
 st.set_page_config(
     page_title="SEO 内容分发工厂",
     page_icon="🚀",

@@ -18,21 +18,18 @@ def render() -> None:
     with st.expander("📖 自动化的原理（必读）", expanded=True):
         st.markdown(
             """
-**这套“每天自动生成”不靠 Streamlit，而是靠 GitHub Actions（GitHub 免费提供的定时任务）。**
+**这套“每天自动生成”有两种方式：**
 
-流程：
-1. 代码仓库里有 `.github/workflows/daily.yml`，里面写了一个定时触发器（默认每天 UTC 02:00 = 北京时间 10:00）
-2. 到时间后，GitHub 会在云端运行 `python scripts/daily_article.py`
-3. 该脚本读取仓库里的 `config/daily_plan.json`（今天写什么主题、多少字、什么语言）+ GitHub 仓库 Secrets（密钥）
-4. 自动执行：选词 → （可选）DataForSEO 调研 → LLM 生成标题 → LLM 生成正文 → 写入 WordPress 草稿箱
-5. 你每天早上到 WordPress 后台审核草稿，点「发布」
+**方式 A（推荐 ✅）：本机定时运行**
+在你自己电脑上双击 `install_task.bat`，一键创建 Windows 计划任务（默认每天 10:00）。中国网络直连你的 WordPress，不受海外拦截影响。详见 README 第 6 步。
 
-**需要你手动做的只有三件事（详见 README 第 6 步）：**
-1. 把 `config/daily_plan.example.json` 复制为 `config/daily_plan.json` 并改成你的关键词
-2. 在 GitHub 仓库 → Settings → Secrets and variables → Actions 里添加密钥（DataForSEO / LLM / WordPress）
-3. 在 GitHub 仓库 → Actions → Daily SEO Article → Run workflow 手动触发一次，验证成功
+**方式 B（备选）：GitHub Actions**
+代码仓库里的 `.github/workflows/daily.yml` 每天定时在 GitHub 云端运行。如果你的 WordPress 主机屏蔽海外访问（测试连接超时），这种方式会连不上你的网站，请改用方式 A。
 
-> 关键词每天自动轮换：按“一年中的第几天”依次取列表里的词，不重复需要任何存储。
+**无论哪种方式，每天自动执行的流程都一样：**
+选词 →（可选）DataForSEO 调研 → LLM 生成标题 → LLM 生成正文 → 写入 WordPress 草稿箱
+
+> 关键词每天自动轮换：按“一年中的第几天”依次取列表里的词，不需要任何存储。
 """
         )
 

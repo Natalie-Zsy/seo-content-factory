@@ -19,12 +19,13 @@
 6. [第 3 步：部署到 Streamlit Cloud](#第-3-步部署到-streamlit-cloud)
 7. [第 4 步：在 Streamlit 里配置密钥（Secrets）](#第-4-步在-streamlit-里配置密钥secrets)
 8. [第 5 步：网页里怎么用（6 个页面）](#第-5-步网页里怎么用6-个页面)
-9. [第 6 步：配置每日自动任务](#第-6-步配置每日自动任务)
-10. [第 7 步：每天的工作流](#第-7-步每天的工作流)
-11. [本地运行（可选，用于测试）](#本地运行可选用于测试)
-12. [常见问题 FAQ](#常见问题-faq)
-13. [安全提醒](#安全提醒)
-14. [后续扩展方向](#后续扩展方向)
+9. [第 6 步：每天自动运行（本地方案，推荐）](#第-6-步每天自动运行本地方案推荐)
+10. [第 7 步：配置每日自动任务（GitHub Actions 版，备选）](#第-7-步配置每日自动任务github-actions-版备选)
+11. [第 8 步：每天的工作流](#第-8-步每天的工作流)
+12. [本地排查与进阶](#本地排查与进阶)
+13. [常见问题 FAQ](#常见问题-faq)
+14. [安全提醒](#安全提醒)
+15. [后续扩展方向](#后续扩展方向)
 
 ---
 
@@ -46,7 +47,9 @@
 `选词 → DataForSEO 查搜索量 → LLM 生成标题候选 → 你锁定标题 → LLM 生成正文 → 写入 WP 草稿箱 → 你审核 → 发布`
 
 **每日自动任务（无需打开网页）：**
-`GitHub Actions 定时触发 → 读取 config/daily_plan.json 和仓库 Secrets → 同样的流程 → 生成一篇草稿 → 你早上在 WP 后台审核发布`
+`本机计划任务（推荐）或 GitHub Actions 定时触发 → 读取 config/daily_plan.json 和密钥 → 同样的流程 → 生成一篇草稿 → 你早上在 WP 后台审核发布`
+
+> 如果 WordPress 测试连接一直超时（主机屏蔽海外访问），请直接用「第 6 步」的本机定时方案。
 
 ---
 
@@ -218,7 +221,65 @@ WP_APP_PASSWORD = "你的 WP 应用程序密码"
 
 ---
 
-## 第 6 步：配置每日自动任务
+## 第 6 步：每天自动运行（本地方案，推荐 ✅）
+
+> 为什么推荐本地：Streamlit 和 GitHub 的服务器都在美国。如果你的 WordPress 主机屏蔽海外访问（国内主机很常见），它们就连不上你的网站；在你自己的电脑上运行则没有这个问题，中国网络直连你的网站。
+
+### 6.1 把项目文件夹放到固定位置
+- 把 `seo-content-factory` 整个文件夹**复制**到一个固定位置，例如 `D:\seo-tool` 或 `C:\seo-tool`（路径别带中文和空格）
+- 后面所有操作都在这个文件夹里进行（脚本会自动识别自己的位置，放哪都行）
+
+### 6.2 安装 Python（如果还没装）
+1. 打开 https://www.python.org/downloads/ 下载最新版
+2. 安装时**务必勾选** “Add python.exe to PATH”
+3. 安装完，打开命令行输入 `python --version`，能看到版本号即成功
+
+### 6.3 双击安装脚本 `install_task.bat`
+它会自动完成 4 件事：
+1. 安装依赖库（第一次需要联网，耐心等待）
+2. 生成 `.env` 密钥文件，并自动用记事本打开让你填写
+3. 生成 `config/daily_plan.json` 每日关键词计划
+4. 创建 Windows 计划任务「SEO每日任务」（默认每天 10:00 自动生成文章）
+
+### 6.4 填写 .env（密钥）
+在自动打开的 `.env` 里，把每个 `=` 后面填成真实值并保存：
+
+```dotenv
+DATAFORSEO_LOGIN=你的DataForSEO登录邮箱
+DATAFORSEO_PASSWORD=你的DataForSEO密钥
+LLM_API_KEY=sk-你的大模型密钥
+LLM_BASE_URL=https://api.deepseek.com/v1
+LLM_MODEL=deepseek-chat
+WP_URL=https://www.chinaguanya.com
+WP_USERNAME=你的WordPress登录用户名（不是应用密码的名字）
+WP_APP_PASSWORD=你的WordPress应用程序密码
+```
+
+### 6.5 测试一次
+双击 `test_daily.bat` → 自动执行完整流程（选词→调研→生成→写草稿），完成后到 WordPress 后台「文章 → 草稿」查看。成功后再等定时任务。
+
+### 6.6 每天的工作流
+- 每天早上打开 WordPress 后台 → 文章 → 草稿 → 审核 → 发布
+- 电脑需要在每天 10:00 处于**开机状态**（到点前开着就行）
+- 想改时间：控制面板 → 管理工具 → 任务计划程序 → 找到「SEO每日任务」→ 右键 → 属性 → 触发器里修改
+
+### 6.7 常用文件说明
+| 文件 | 作用 |
+|---|---|
+| `install_task.bat` | 一键安装：依赖 + 配置 + 创建计划任务 |
+| `start_app.bat` | 打开本地网页版工具（关键词调研 / 文章工厂 / 发草稿，全部可用） |
+| `test_daily.bat` | 手动执行一次每日任务（会真写一篇草稿到 WP） |
+| `run_daily.bat` | 计划任务实际调用的脚本（不弹窗停留） |
+| `uninstall_task.bat` | 删除计划任务 |
+| `.env` | 你的密钥（已被 .gitignore 忽略，不会上传到 GitHub） |
+| `config/daily_plan.json` | 每日关键词计划，改这里就能换主题 |
+| `data/daily_log.txt` | 每日任务运行日志 |
+
+> 说明：云端 Streamlit 网页版适合随时随地查关键词、写文章预览；但**发草稿到 WordPress 请用本地的 `start_app.bat` 或每日任务**，因为云端服务器可能连不上你的网站。
+
+## 第 7 步：配置每日自动任务（GitHub Actions 版，备选）
+
+> ⚠️ 如果你的 WordPress 主机屏蔽海外访问（测试连接超时），GitHub Actions 也会连不上你的网站，请直接用上面的「第 6 步 本地方案」。
 
 **原理**：Streamlit 免费版不能定时运行，所以“每天自动生成”由 **GitHub Actions** 完成——每天到点后在 GitHub 云端运行一次脚本，把草稿写进你的 WordPress。
 
@@ -261,7 +322,7 @@ WP_APP_PASSWORD = "你的 WP 应用程序密码"
 
 ---
 
-## 第 7 步：每天的工作流
+## 第 8 步：每天的工作流
 
 1. 早上打开 WordPress 后台 → **文章 → 草稿**
 2. 逐篇检查：标题、内容质量、排版、图片、链接
@@ -273,20 +334,15 @@ WP_APP_PASSWORD = "你的 WP 应用程序密码"
 
 ---
 
-## 本地运行（可选，用于测试）
+## 本地排查与进阶
 
-想在自己电脑上先试试（不需要，但有助于理解）：
-
-1. 安装 Python 3.10+：https://www.python.org/downloads/ （安装时勾选 Add to PATH）
-2. 打开命令行（Windows 按 `Win+R` 输入 `cmd`）：
-```bash
-cd 项目文件夹路径
-pip install -r requirements.txt
-copy .env.example .env
-```
-3. 编辑 `.env`，填入真实密钥
-4. 启动网页版：`streamlit run app.py`，浏览器会自动打开 `http://localhost:8501`
-5. 测试每日脚本：`python scripts/daily_article.py`
+- **Python 没装 / 命令找不到**：见「第 6 步」6.2，安装时勾选 Add to PATH
+- **pip 安装依赖慢 / 报 SSL 错误（国内网络连不上 pypi.org）**：`install_task.bat` 已自动使用清华/阿里镜像；手动安装用 `python -m pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple`
+- **单独启动本地网页版**：双击 `start_app.bat`（或命令行 `streamlit run app.py`），浏览器打开 `http://localhost:8501`
+- **手动跑每日脚本**：`python scripts/daily_article.py`（或双击 `test_daily.bat`）
+- **查看日志**：`data/daily_log.txt`
+- **换每日主题**：编辑 `config/daily_plan.json` 里的 `keywords` 列表（列表越长，每天轮换越多样）
+- **DataForSEO 连不上**：如果在国内网络环境调用失败，可能需要科学上网或换网络再试
 
 ---
 
@@ -298,8 +354,14 @@ copy .env.example .env
 **Q2：DataForSEO 报“认证失败 / 401”**
 → API Login / Password 填错了。登录 DataForSEO 控制台 → API Access 重新核对。
 
+**Q2.1：DataForSEO 报“账户尚未完成验证 / 403 (Please verify your account)”**
+→ 账号还没通过验证，不是密钥问题。登录 https://app.dataforseo.com/ → 右上角头像 → 用户面板，按提示完成验证（通常是点击注册邮箱里收到的验证邮件里的链接）。验证后重新执行即可。
+
 **Q3：WordPress 创建草稿失败（401/403/404）**
-→ 检查：用户名/应用程序密码是否复制完整（含空格没关系）；固定链接是否为“文章名”格式；主机是否禁用了 REST API（可问主机商）。
+→ 先分清是哪一种：
+- **401 rest_not_logged_in（“您目前没有登录”）**：用户名或应用程序密码不对。到 WP 后台 → 用户 → 个人资料 → 应用程序密码，删掉旧的重新“生成”，整段含空格复制；用户名填 WP 登录账号（不是邮箱、不是昵称）。
+- **404**：固定链接不是“文章名”格式，或 REST API 被插件/主机禁用。到 WP 后台 → 设置 → 固定链接改成“文章名”；仍不行就问主机商。
+- **403**：主机/防火墙拦截海外访问，或应用密码权限不足。参考 Q10。
 
 **Q4：文章字数总是偏多/偏少**
 → LLM 对“字数”只是近似控制。可以把「期望字数」改成更精确的范围，或在定制指令里强调“正文正文部分不少于 X 词，不含标题和列表”。
@@ -318,6 +380,9 @@ copy .env.example .env
 
 **Q9：我的站点是小语种（德语等），DataForSEO 支持吗**
 → 支持。DataForSEO 覆盖全球市场，本工具内置了德国、美国、法国、西班牙、日本等 15 个常用市场（可在 `seo_factory/config.py` 的 `MARKETS` 里增删）。
+
+**Q10：WordPress 测试连接一直超时（海外拦截）怎么办**
+→ 这是主机屏蔽海外访问导致的。推荐改用「第 6 步」本机定时方案（完全绕开）；也可以联系主机商放行海外访问、或只放行 `/wp-json/` 接口；进阶做法是给网站套 Cloudflare CDN。
 
 ---
 

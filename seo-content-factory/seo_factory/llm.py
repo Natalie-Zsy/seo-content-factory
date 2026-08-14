@@ -14,6 +14,8 @@ import re
 
 import requests
 
+from seo_factory.http import request_with_retry
+
 
 class LLMError(Exception):
     """大模型接口调用失败。"""
@@ -52,7 +54,7 @@ def chat(
         "Content-Type": "application/json",
     }
     try:
-        resp = requests.post(_endpoint(base_url), json=payload, headers=headers, timeout=timeout)
+        resp = request_with_retry("POST", _endpoint(base_url), json=payload, headers=headers, timeout=timeout)
     except requests.RequestException as exc:
         raise LLMError(f"无法连接 LLM 接口：{exc}") from exc
 

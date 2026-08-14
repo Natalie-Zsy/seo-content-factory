@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import requests
 
+from seo_factory.http import request_with_retry
+
 API_BASE = "https://api.dataforseo.com/v3"
 
 
@@ -51,7 +53,7 @@ def keywords_for_keywords(
         ]
     }
     try:
-        resp = requests.post(url, json=payload, auth=(login, password), timeout=timeout)
+        resp = request_with_retry("POST", url, json=payload, auth=(login, password), timeout=timeout)
     except requests.RequestException as exc:
         raise DataForSEOError(f"无法连接 DataForSEO：{exc}") from exc
 
@@ -59,6 +61,15 @@ def keywords_for_keywords(
         raise DataForSEOError("DataForSEO 认证失败（401）：请检查 API Login 和 API Password 是否正确。")
     if resp.status_code == 402:
         raise DataForSEOError("DataForSEO 余额不足（402）：请到 https://app.dataforseo.com/ 充值。")
+    if resp.status_code == 403:
+        try:
+            body = resp.json()
+            msg = body.get("status_message", "") or ""
+        except Exception:
+            msg = ""
+        if "verify" in msg.lower():
+            raise DataForSEOError("DataForSEO 账户尚未完成验证：请登录 https://app.dataforseo.com/ 完成账户验证（检查注册邮箱里的验证邮件），完成后重试。")
+        raise DataForSEOError(f"DataForSEO 拒绝访问（403）：{resp.text[:300]}")
     if resp.status_code != 200:
         raise DataForSEOError(f"DataForSEO 返回异常状态码 {resp.status_code}：{resp.text[:300]}")
 
@@ -94,11 +105,7 @@ def check_balance(login: str = "", password: str = "") -> dict:
     if not login or not password:
         return {}
     try:
-        resp = requests.get(
-            f"{API_BASE}/account",
-            auth=(login, password),
-            timeout=30,
-        )
+        resp = request_with_retry("GET", f"{API_BASE}/appendix/user_data", auth=(login, password), timeout=30)
         if resp.status_code != 200:
             return {}
         body = resp.json()
@@ -108,10 +115,10 @@ def check_balance(login: str = "", password: str = "") -> dict:
         result = tasks[0].get("result") or []
         if not result:
             return {}
-        r = result[0]
+        money = (result[0] or {}).get("money") or {}
         return {
-            "balance": r.get("balance", 0),
-            "total_cost": r.get("total_cost", 0),
+            "balance": money.get("balance", 0),
+            "total_cost": money.get("total", 0),
         }
     except Exception:
         return {}

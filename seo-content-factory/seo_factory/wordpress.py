@@ -13,6 +13,8 @@ from __future__ import annotations
 
 import requests
 
+from seo_factory.http import request_with_retry
+
 
 class WordPressError(Exception):
     """WordPress 接口调用失败。"""
@@ -31,15 +33,11 @@ def test_connection(wp_url: str, username: str, app_password: str) -> str:
     """验证 WordPress 连接，返回当前登录用户名。"""
     _check_config(wp_url, username, app_password)
     try:
-        resp = requests.get(
-            f"{_api(wp_url)}/users/me",
-            auth=(username, app_password),
-            timeout=30,
-        )
+        resp = request_with_retry("GET", f"{_api(wp_url)}/users/me", auth=(username, app_password), timeout=30)
     except requests.RequestException as exc:
         raise WordPressError(f"无法连接 WordPress：{exc}") from exc
     if resp.status_code == 401:
-        raise WordPressError("WordPress 认证失败（401）：请检查用户名 / 应用程序密码是否正确。")
+        raise WordPressError("WordPress 认证失败（401）：用户名或应用程序密码不正确。请到 WP 后台「用户 → 个人资料 → 应用程序密码」重新生成一段（整段含空格复制）；用户名填 WP 登录账号（不是邮箱或昵称）。")
     if resp.status_code == 404:
         raise WordPressError("WordPress REST API 不可用（404）：请确认固定链接设置不是纯数字，并允许 REST API 访问。")
     if resp.status_code != 200:
@@ -76,17 +74,12 @@ def create_draft(
         payload["meta"] = meta
 
     try:
-        resp = requests.post(
-            f"{_api(wp_url)}/posts",
-            json=payload,
-            auth=(username, app_password),
-            timeout=90,
-        )
+        resp = request_with_retry("POST", f"{_api(wp_url)}/posts", json=payload, auth=(username, app_password), timeout=90)
     except requests.RequestException as exc:
         raise WordPressError(f"无法连接 WordPress：{exc}") from exc
 
     if resp.status_code in (401, 403):
-        raise WordPressError(f"WordPress 拒绝写入（{resp.status_code}）：请确认应用程序密码权限，或联系主机商放行 REST API。")
+        raise WordPressError(f"WordPress 拒绝写入（{resp.status_code}）：认证失败。请重新生成应用程序密码（WP 后台 → 用户 → 个人资料 → 应用程序密码），整段含空格复制；确认用户名是登录账号。")
     if resp.status_code != 201 and resp.status_code != 200:
         raise WordPressError(f"创建草稿失败（{resp.status_code}）：{resp.text[:400]}")
 
@@ -103,7 +96,8 @@ def list_drafts(wp_url: str, username: str, app_password: str, per_page: int = 3
     """按最近修改时间列出草稿。"""
     _check_config(wp_url, username, app_password)
     try:
-        resp = requests.get(
+        resp = request_with_retry(
+            "GET",
             f"{_api(wp_url)}/posts",
             params={
                 "status": "draft",
@@ -135,7 +129,8 @@ def set_post_status(wp_url: str, username: str, app_password: str, post_id: int,
     """把某篇文章改为指定状态（如 publish），返回文章链接。"""
     _check_config(wp_url, username, app_password)
     try:
-        resp = requests.post(
+        resp = request_with_retry(
+            "POST",
             f"{_api(wp_url)}/posts/{post_id}",
             json={"status": status},
             auth=(username, app_password),
