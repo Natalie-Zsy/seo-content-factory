@@ -100,25 +100,63 @@ def keywords_for_keywords(
     return items
 
 
+def _network_error_hint(exc: Exception) -> str:
+    """把连接类异常转成给用户看的提示。"""
+    name = type(exc).__name__
+    detail = str(exc)
+    return (
+        f"网络连接失败（{name}）：DataForSEO 服务器在海外，当前网络线路不稳定"
+        "（TLS 握手被重置/超时）。这通常与账号无关，请稍后重试；"
+        "若持续失败，可换手机热点或其他网络再试。"
+        f"\n详细信息：{detail[:200]}"
+    )
+
+
 def check_balance(login: str = "", password: str = "") -> dict:
-    """查询账户余额（用于「设置」页显示剩余额度）。"""
+    """查询账户余额（用于「设置」页显示剩余额度）。
+
+    返回：{"ok": True, "balance": ..., "total_cost": ...}
+     或  {"ok": False, "error": "原因说明"}
+    """
     if not login or not password:
-        return {}
+        return {"ok": False, "error": "还没有配置 DataForSEO 的 API Login / Password。"}
     try:
         resp = request_with_retry("GET", f"{API_BASE}/appendix/user_data", auth=(login, password), timeout=30)
-        if resp.status_code != 200:
-            return {}
+    except requests.exceptions.RequestException as exc:
+        return {"ok": False, "error": _network_error_hint(exc)}
+    except Exception as exc:  # 兜底
+        return {"ok": False, "error": f"查询异常：{exc}"}
+
+    if resp.status_code == 401:
+        return {"ok": False, "error": "DataForSEO 认证失败（401）：API Login / Password 不正确。请到 https://app.dataforseo.com 右上角头像 → API Access 核对。"}
+    if resp.status_code == 402:
+        return {"ok": False, "error": "DataForSEO 余额不足（402）：请到 https://app.dataforseo.com 充值。"}
+    if resp.status_code == 403:
+        try:
+            msg = resp.json().get("status_message", "") or ""
+        except Exception:
+            msg = ""
+        if "verify" in msg.lower():
+            return {"ok": False, "error": "DataForSEO 账户尚未完成验证：请登录 https://app.dataforseo.com 检查注册邮箱里的验证邮件，完成后重试。"}
+        if "whitelist" in msg.lower() or "access denied" in msg.lower():
+            return {"ok": False, "error": f"DataForSEO 拒绝了当前 IP（403）：{msg}。请到 API 设置页把 IP 白名单清空留空。"}
+        return {"ok": False, "error": f"DataForSEO 拒绝访问（403）：{resp.text[:200]}"}
+    if resp.status_code != 200:
+        return {"ok": False, "error": f"DataForSEO 返回异常状态码 {resp.status_code}：{resp.text[:200]}"}
+
+    try:
         body = resp.json()
-        tasks = body.get("tasks") or []
-        if not tasks:
-            return {}
-        result = tasks[0].get("result") or []
-        if not result:
-            return {}
-        money = (result[0] or {}).get("money") or {}
-        return {
-            "balance": money.get("balance", 0),
-            "total_cost": money.get("total", 0),
-        }
     except Exception:
-        return {}
+        return {"ok": False, "error": "DataForSEO 返回内容无法解析。"}
+    tasks = body.get("tasks") or []
+    if not tasks:
+        return {"ok": False, "error": f"DataForSEO 返回空结果：{body.get('status_message', '')}"}
+    result = tasks[0].get("result") or []
+    if not result:
+        return {"ok": False, "error": "DataForSEO 返回结果为空。"}
+    money = (result[0] or {}).get("money") or {}
+    return {
+        "ok": True,
+        "balance": money.get("balance", 0),
+        "total_cost": money.get("total", 0),
+    }

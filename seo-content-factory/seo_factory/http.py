@@ -10,7 +10,7 @@ import time
 import requests
 
 
-def request_with_retry(method: str, url: str, attempts: int = 3, delay: float = 2.0, **kwargs):
+def request_with_retry(method: str, url: str, attempts: int = 5, delay: float = 3.0, **kwargs):
     """发请求并自动重试连接类错误；认证错误(401)等不会重试。"""
     last_exc: Exception | None = None
     for i in range(attempts):

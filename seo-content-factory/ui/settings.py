@@ -44,10 +44,10 @@ def render() -> None:
         else:
             with st.spinner("查询中…"):
                 info = dataforseo.check_balance(dfs_login, dfs_password)
-            if info:
+            if info.get("ok"):
                 st.info(f"账户余额：${info.get('balance', '?')}　·　累计消费：${info.get('total_cost', '?')}")
             else:
-                st.error("余额查询失败（可能凭证有误，或账户不支持该接口）。")
+                st.error(f"余额查询失败：{info.get('error', '未知原因')}")
 
     # ---------- LLM ----------
     st.subheader("2️⃣ 大模型 LLM（生成标题 / 正文）")
