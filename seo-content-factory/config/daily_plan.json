@@ -1,18 +1,13 @@
 {
   "enabled": false,
-  "language_name": "德语（德国）",
-  "language_code": "de",
-  "location_code": 276,
-  "keywords": [
-    "Geschenkideen",
-    "personalisierte Geschenke",
-    "Geschenke für Männer",
-    "Geschenke für Frauen"
-  ],
+  "language_name": "待设置",
+  "language_code": "",
+  "location_code": 0,
+  "keywords": [],
   "research_expand": true,
   "research_max_items": 15,
   "min_words": 900,
   "max_words": 1100,
-  "custom_instruction": "目标读者是德国普通消费者，语气亲切专业，多给具体可执行的建议和例子。",
+  "custom_instruction": "",
   "titles_count": 5
 }
