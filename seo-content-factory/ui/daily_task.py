@@ -42,7 +42,7 @@ def render() -> None:
         st.warning("还没有创建 daily_plan.json，当前展示的是内置默认值。请复制 config/daily_plan.example.json 为 config/daily_plan.json 并修改。")
 
     show = {
-        "语言": plan.get("language_name"),
+        "语言": " + ".join(l.get("language_name", "") for l in daily.plan_languages(plan)),
         "关键词列表": "、".join(plan.get("keywords") or []),
         "是否调研扩展": "是（DataForSEO 优选出搜索量高的词）" if plan.get("research_expand") else "否",
         "期望字数": f"{plan.get('min_words')} - {plan.get('max_words')}",
@@ -62,9 +62,18 @@ def render() -> None:
                 result = daily.run(plan=plan, verbose=False, settings=common.session_settings())
                 st.success("✅ 今日任务执行成功！")
                 st.markdown(f"**今日关键词：** {result['keyword']}")
-                st.markdown(f"**文章标题：** {result['title']}")
-                st.markdown(f"👉 [在 WordPress 中编辑草稿]({result.get('edit_link', '')})")
-                st.markdown(f"预览（未发布）：{result.get('public_link', '')}")
+                posts = result.get("posts") or []
+                if posts:
+                    for p in posts:
+                        st.markdown(
+                            f"**{p.get('language', '')}草稿：** {p.get('title', '')}　👉 "
+                            f"[在 WordPress 中编辑]({p.get('edit_link', '')})"
+                        )
+                else:
+                    st.markdown(f"**文章标题：** {result['title']}")
+                    st.markdown(f"👉 [在 WordPress 中编辑草稿]({result.get('edit_link', '')})")
+                if result.get("public_link"):
+                    st.markdown(f"预览（未发布）：{result.get('public_link', '')}")
             except Exception as exc:  # noqa: BLE001
                 st.error(f"❌ 执行失败：{exc}")
                 st.info("常见原因：密钥未配置 / DataForSEO 余额不足 / WordPress 应用密码错误。可展开下方「开发人员原始报文」查看细节（脚本把最近一次结果写在 data/last_article.json）。")

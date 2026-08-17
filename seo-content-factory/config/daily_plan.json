@@ -16,5 +16,17 @@
   "min_words": 900,
   "max_words": 1100,
   "custom_instruction": "面向全球的工业阀门与仪表，工业设备行业的企业客户，语气专业严谨；开头点明行业痛点，帮助人们了解咨询，解决问题，非同质化内容，正文分段并配小标题；突出产品参数、执行标准、应用场景和选型建议等等；结尾给出行动号召；全文 900-1100 字。",
-  "titles_count": 5
+  "titles_count": 5,
+  "languages": [
+    {
+      "language_name": "中文（中国）",
+      "language_code": "zh_CN",
+      "location_code": 2524
+    },
+    {
+      "language_name": "英语（美国）",
+      "language_code": "en",
+      "location_code": 2840
+    }
+  ]
 }
