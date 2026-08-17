@@ -38,5 +38,7 @@ with st.sidebar:
     page = st.radio("导航", list(PAGES.keys()), label_visibility="collapsed")
     st.divider()
     st.caption("流程：调研词库 → 优选标题 → 生成正文 → 自动分发到 WP 草稿箱")
+    st.caption("版本 v3 · 2026-08-17 · 关键词调研已修复")
+    st.caption("状态码含义：40503=请求格式错(旧版代码) / 40203=每日额度超限 / 20000=成功")
 
 PAGES[page]()
