@@ -106,6 +106,11 @@ def run(plan: dict | None = None, verbose: bool = True, settings: dict | None = 
     plan = plan or load_plan()
     settings = settings if settings is not None else _settings()
 
+    if not plan.get("enabled", True):
+        raise RuntimeError(
+            "daily_plan.json 中 enabled=false，每日任务已停用。如需启用，请把 enabled 改为 true。"
+        )
+
     keyword = pick_keyword(plan)
     language_name = plan.get("language_name", "德语（德国）")
 
