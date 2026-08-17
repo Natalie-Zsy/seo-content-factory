@@ -77,8 +77,19 @@ def keywords_for_keywords(
         raise DataForSEOError(f"DataForSEO 返回空结果：{body.get('status_message', '')}")
 
     first = tasks[0]
-    if first.get("status_code") != 20000:
-        raise DataForSEOError(f"{first.get('status_code')}: {first.get('status_message')}")
+    sc = first.get("status_code")
+    if sc != 20000:
+        msg = first.get("status_message") or ""
+        if sc == 40203:
+            raise DataForSEOError(
+                "DataForSEO 每日花费上限已用完（40203）。请登录 https://app.dataforseo.com/api-settings "
+                "把每日花费上限调高（例如 1~2 美元），稍后再试。"
+            )
+        if sc == 40201:
+            raise DataForSEOError(
+                "DataForSEO 账户余额不足（40201）。请到 https://app.dataforseo.com 充值后再试。"
+            )
+        raise DataForSEOError(f"{sc}: {msg}")
 
     items: list[dict] = []
     for item in first.get("result") or []:

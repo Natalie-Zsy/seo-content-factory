@@ -75,7 +75,7 @@ MARKETS: dict[str, dict] = {
     "巴西 (Português)":          {"language_code": "pt", "location_code": 2076},
     "墨西哥 (Español)":          {"language_code": "es", "location_code": 2153},
     "新加坡 (English)":          {"language_code": "en", "location_code": 2058},
-    "中国 (中文)":               {"language_code": "zh", "location_code": 2524},
+    "中国 (中文)":               {"language_code": "zh_CN", "location_code": 2524},
 }
 
 
