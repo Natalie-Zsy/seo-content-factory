@@ -1,13 +1,20 @@
 {
-  "enabled": false,
-  "language_name": "待设置",
-  "language_code": "",
-  "location_code": 0,
-  "keywords": [],
-  "research_expand": true,
+  "enabled": true,
+  "language_name": "中文（中国）",
+  "language_code": "zh_CN",
+  "location_code": 2524,
+  "keywords": [
+    "工业阀门供应商",
+    "工业仪表供应商",
+    "阀门供应商",
+    "仪表供应商",
+    "进口阀门",
+    "国产阀门"
+  ],
+  "research_expand": false,
   "research_max_items": 15,
   "min_words": 900,
   "max_words": 1100,
-  "custom_instruction": "",
+  "custom_instruction": "面向中国工业阀门与仪表行业的企业客户，内容专业准确，突出产品优势、应用场景和选型建议，语气专业可信。",
   "titles_count": 5
 }
