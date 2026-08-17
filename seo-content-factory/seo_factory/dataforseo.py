@@ -47,7 +47,6 @@ def keywords_for_keywords(
             "keywords": keywords,
             "location_code": int(location_code),
             "language_code": language_code,
-            "limit": int(limit),
             "include_adult_keywords": False,
         }
     ]
@@ -82,20 +81,19 @@ def keywords_for_keywords(
         raise DataForSEOError(f"{first.get('status_code')}: {first.get('status_message')}")
 
     items: list[dict] = []
-    for result in first.get("result") or []:
-        for it in result.get("items") or []:
-            ki = it.get("keyword_info") or {}
-            intent = (it.get("search_intent_info") or {}).get("main_intent", "")
-            items.append(
-                {
-                    "keyword": it.get("keyword", ""),
-                    "search_volume": ki.get("search_volume", 0) or 0,
-                    "competition_level": ki.get("competition_level", ""),
-                    "competition": ki.get("competition", 0) or 0,
-                    "cpc": ki.get("cpc", 0) or 0,
-                    "intent": intent,
-                }
-            )
+    for item in first.get("result") or []:
+        items.append(
+            {
+                "keyword": item.get("keyword", ""),
+                "search_volume": item.get("search_volume", 0) or 0,
+                "competition_level": item.get("competition", ""),
+                "competition": item.get("competition_index", 0) or 0,
+                "cpc": item.get("cpc", 0) or 0,
+                "intent": "",
+            }
+        )
+        if len(items) >= limit:
+            break
     return items
 
 
