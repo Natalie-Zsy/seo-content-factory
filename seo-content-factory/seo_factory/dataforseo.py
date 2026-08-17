@@ -41,17 +41,16 @@ def keywords_for_keywords(
         raise DataForSEOError("还没有配置 DataForSEO 的 API Login / Password，请先到「设置」页填写。")
 
     url = f"{API_BASE}/keywords_data/google_ads/keywords_for_keywords/live"
-    payload = {
-        "data": [
-            {
-                "keywords": keywords,
-                "location_code": int(location_code),
-                "language_code": language_code,
-                "limit": int(limit),
-                "include_adult_keywords": False,
-            }
-        ]
-    }
+    # 注意：live 接口的请求体是「顶层数组」，不是 {"data": [...]}
+    payload = [
+        {
+            "keywords": keywords,
+            "location_code": int(location_code),
+            "language_code": language_code,
+            "limit": int(limit),
+            "include_adult_keywords": False,
+        }
+    ]
     try:
         resp = request_with_retry("POST", url, json=payload, auth=(login, password), timeout=timeout)
     except requests.RequestException as exc:
