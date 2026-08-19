@@ -168,3 +168,88 @@ def check_balance(login: str = "", password: str = "") -> dict:
         "balance": money.get("balance", 0),
         "total_cost": money.get("total", 0),
     }
+def backlinks(
+    target: str,
+    mode: str = "one_per_domain",
+    dofollow_only: bool = True,
+    limit: int = 50,
+    login: str = "",
+    password: str = "",
+    timeout: int = 120,
+) -> dict:
+    """查询目标域名的外链（Backlinks API，按返回条数计费）。
+
+    :param target: 竞品域名或页面，例如 "competitor.com" 或 "https://example.com/page"
+    :param mode: one_per_domain（每个域名一条）或 all（全部外链）
+    :param dofollow_only: 是否只保留 DoFollow 链接
+    :param limit: 最多返回多少条
+    返回：{"total_count": int, "items": [ {domain_from_rank, url_from, anchor, url_to, dofollow, first_seen, last_seen} ]}
+    """
+    if not login or not password:
+        raise DataForSEOError("还没有配置 DataForSEO 的 API Login / Password，请先到「设置」页填写。")
+
+    url = f"{API_BASE}/backlinks/backlinks/live"
+    task: dict = {
+        "target": target,
+        "mode": mode,
+        "limit": int(limit),
+    }
+    if dofollow_only:
+        task["filters"] = [["dofollow", "=", True]]
+    payload = [task]
+    try:
+        resp = request_with_retry("POST", url, json=payload, auth=(login, password), timeout=timeout)
+    except requests.RequestException as exc:
+        raise DataForSEOError(f"无法连接 DataForSEO：{exc}") from exc
+
+    if resp.status_code == 401:
+        raise DataForSEOError("DataForSEO 认证失败（401）：请检查 API Login 和 API Password 是否正确。")
+    if resp.status_code == 402:
+        raise DataForSEOError("DataForSEO 余额不足（402）：请到 https://app.dataforseo.com/ 充值。")
+    if resp.status_code != 200:
+        raise DataForSEOError(f"DataForSEO 返回异常状态码 {resp.status_code}：{resp.text[:300]}")
+
+    body = resp.json()
+    tasks = body.get("tasks") or []
+    if not tasks:
+        raise DataForSEOError(f"DataForSEO 返回空结果：{body.get('status_message', '')}")
+    first = tasks[0]
+    sc = first.get("status_code")
+    if sc != 20000:
+        msg = first.get("status_message") or ""
+        if sc == 40203:
+            raise DataForSEOError(
+                "DataForSEO 每日花费上限已用完（40203）。请登录 https://app.dataforseo.com/api-settings "
+                "把每日花费上限调高（例如 2~5 美元），稍后再试。"
+            )
+        if sc == 40201:
+            raise DataForSEOError("DataForSEO 账户余额不足（40201）。请到 https://app.dataforseo.com 充值后再试。")
+        if "backlink" in msg.lower() and any(k in msg.lower() for k in ("not available", "disabled", "enable", "access")):
+            raise DataForSEOError(
+                f"Backlinks 接口暂不可用：{msg}。请到 https://app.dataforseo.com 确认账户已开通 Backlinks API。"
+            )
+        raise DataForSEOError(f"{sc}: {msg}")
+
+    results = first.get("result") or []
+    if not results:
+        return {"total_count": 0, "items": []}
+    result0 = results[0]
+    items_raw = result0.get("items") or []
+    items = []
+    for it in items_raw:
+        items.append(
+            {
+                "domain_from_rank": it.get("domain_from_rank", 0) or 0,
+                "url_from": it.get("url_from", ""),
+                "anchor": (it.get("anchor") or "").strip() or "（无锚文本）",
+                "url_to": it.get("url_to", ""),
+                "dofollow": bool(it.get("dofollow")),
+                "first_seen": it.get("first_seen", ""),
+                "last_seen": it.get("last_seen", ""),
+            }
+        )
+    return {
+        "total_count": result0.get("total_count", 0) or 0,
+        "items": items,
+    }
+
