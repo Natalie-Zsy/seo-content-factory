@@ -143,19 +143,39 @@ def _bg_value() -> str:
 
 def _css() -> str:
     theme = _theme()
-    bg = _bg_value()
     accent = theme["accent"]
     border = theme["border"]
     text = theme["text"]
     font_size = FONT_SIZES.get(st.session_state.get("font_size", DEFAULT_FONT), "16px")
+    image = st.session_state.get("theme_image")
+    color = st.session_state.get("theme_color")
+    if image:
+        # 背景图：独立属性分开展开，更稳
+        bg_extra = f"""background-image: url('{image}') !important;
+    background-color: {theme["bg_picker"]} !important;
+    background-size: cover !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+    background-attachment: fixed !important;"""
+    elif color:
+        bg_extra = f"background: {color} !important;"
+    else:
+        bg_extra = f"background: {theme['app_bg']} !important;"
     return f"""
 <style>
 html, body, .stApp, [data-testid="stAppViewContainer"] {{
     font-size: {font_size} !important;
 }}
 .stApp, [data-testid="stAppViewContainer"] {{
-    background: {bg} !important;
+    {bg_extra}
     color: {text} !important;
+}}
+/* 让正文内容区透明，背景图/背景色才能铺满整个页面 */
+[data-testid="stAppViewContainer"] .block-container,
+[data-testid="stMain"],
+[data-testid="stMainBlockContainer"],
+[data-testid="stAppViewContainer"] .main {{
+    background: transparent !important;
 }}
 [data-testid="stHeader"] {{
     background: transparent !important;
@@ -397,4 +417,5 @@ def render_selector() -> None:
 
         # 把当前设置保存到网址（有变化才写）
         _persist()
+
 
