@@ -44,7 +44,8 @@ with st.sidebar:
     st.divider()
     theme.render_selector()
     st.caption("流程：调研词库 → 优选标题 → 生成正文 → 自动分发到 WP 草稿箱")
-    st.caption("版本 v6 · 2026-08-19 · 外观美化：主题/图标/背景/字号，设置自动保存")
+    st.caption("版本 v6.1 · 2026-08-19 · 外观美化：修复背景图/背景色铺满显示")
     st.caption("状态码含义：40503=请求格式错(旧版代码) / 40203=每日额度超限 / 20000=成功")
 
 PAGES[page]()
+
